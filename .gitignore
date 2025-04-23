@@ -1,4 +1,4 @@
-.env
+# .env
 # Node modules folder
 node_modules/
 
@@ -8,10 +8,11 @@ node_modules/
 dist/
 terraform/.terraform/
 terraform2/.terraform/
+
 terraform5/.terraform/
 
 # Environment variable files
-.env
+# .env
 
 # Log files
 *.log
