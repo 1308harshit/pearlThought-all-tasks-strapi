@@ -75,7 +75,7 @@ database/
 
 # Docker and image files
 # Dockerfile
-*.dockerignore
+# *.dockerignore
 
 # Specific files like README, favicon.png, and others are usually safe to include in your repo, so you don't need to ignore them unless they are built/generated
 README.md
