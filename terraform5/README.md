@@ -106,3 +106,7 @@ When prompted, type `yes` to confirm the destruction of resources.
 - Check the security group settings to ensure ports 80 and 443 are open for the ALB.
 - Make sure that the ECR image URI is correctly referenced in the Terraform task definition.
 
+## LOOM VIDEO
+https://www.loom.com/share/7cf708fb68d14a30917eddfa36f2326f?sid=047eb21b-5a7d-4a8a-81a9-280f5760d4a4
+
+https://www.loom.com/share/6883b8f36e9042d9bb43445d866fa927?sid=74aaf31f-0241-4202-98fe-39ac03e9ad06

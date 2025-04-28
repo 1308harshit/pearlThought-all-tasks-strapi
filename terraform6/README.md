@@ -209,3 +209,7 @@ When prompted, type `yes` to confirm the destruction of resources.
 - If you face issues with ECS tasks not starting, ensure the ECS task has sufficient resources and the Docker image is correctly pushed to ECR.
 - Check the security group settings to ensure ports 80 and 443 are open for the ALB.
 - Make sure that the ECR image URI is correctly referenced in the Terraform task definition.
+
+## LOOM VIDEO
+
+https://www.loom.com/share/fddca23ebefa4affbbfabafaf6b040ba?sid=e582af34-350e-4bc1-bce5-7d09daf19372
