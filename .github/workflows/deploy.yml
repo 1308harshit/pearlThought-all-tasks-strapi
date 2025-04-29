@@ -107,7 +107,7 @@ jobs:
         run: |
           aws deploy create-deployment \
             --application-name StrapiCodeDeployApp \
-            --deployment-group-name strapi \
+            --deployment-group-name StrapiDeploymentGroup \
             --deployment-config-name CodeDeployDefault.ECSAllAtOnce \
             --revision "revisionType=AppSpecContent,appSpecContent={content=$(cat appspec.json | jq -Rs .)}" \
             --description "GitHub Actions Deployment - Blue/Green"
