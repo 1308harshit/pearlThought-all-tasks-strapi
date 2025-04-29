@@ -6,8 +6,8 @@ resource "aws_ecs_task_definition" "strapi_task" {
   family                   = "strapi-task"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
-  cpu                      = "512"
-  memory                   = "1024"
+  cpu                      = "2048"
+  memory                   = "4096"
   execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
 
   container_definitions = jsonencode([
@@ -18,6 +18,7 @@ resource "aws_ecs_task_definition" "strapi_task" {
         containerPort = 1337
         protocol      = "tcp"
       }]
+      
     }
   ])
 }
@@ -29,8 +30,12 @@ resource "aws_ecs_service" "strapi_service" {
   desired_count   = 1
   # launch_type     = "FARGATE"
   capacity_provider_strategy {
-  capacity_provider = "FARGATE_SPOT"
-  weight            = 1
+    capacity_provider = "FARGATE_SPOT"
+    weight            = 1
+  }
+
+  deployment_controller {
+    type = "CODE_DEPLOY"
   }
 
   network_configuration {
@@ -40,7 +45,7 @@ resource "aws_ecs_service" "strapi_service" {
   }
 
   load_balancer {
-    target_group_arn = aws_lb_target_group.strapi_tg.arn
+    target_group_arn = aws_lb_target_group.strapi_tg_blue.arn
     container_name   = "strapi"
     container_port   = 1337
   }
