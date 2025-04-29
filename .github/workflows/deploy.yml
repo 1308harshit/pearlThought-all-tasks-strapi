@@ -30,7 +30,6 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR
-        id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
 
       - name: Build and push Docker image
@@ -38,11 +37,31 @@ jobs:
           docker build -t ${{ secrets.ECR_REPOSITORY_URI }}:latest .
           docker push ${{ secrets.ECR_REPOSITORY_URI }}:latest
 
+      - name: Download existing ECS task definition
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition strapi-task \
+            --query taskDefinition \
+            --output json > task-def.json
+
+      - name: Update task definition with latest image
+        run: |
+          jq '.containerDefinitions[0].image = "${{ secrets.ECR_REPOSITORY_URI }}:latest"' task-def.json > new-task-def.json
+
+      - name: Register new ECS task definition revision
+        id: register_task
+        run: |
+          TASK_DEF_ARN=$(aws ecs register-task-definition \
+            --cli-input-json file://new-task-def.json \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text)
+          echo "TASK_DEF_ARN=$TASK_DEF_ARN" >> $GITHUB_ENV
+
       - name: Initialize Terraform
         run: |
           cd terraform10
           terraform init
-        
+
       - name: Generate Terraform Plan
         run: |
           cd terraform10
@@ -52,4 +71,34 @@ jobs:
         run: |
           cd terraform10
           terraform apply -auto-approve -var "image_uri=${{ secrets.ECR_REPOSITORY_URI }}:latest"
-      
+
+      - name: Create AppSpec file
+        run: |
+          cat <<EOF > appspec.json
+          {
+            "version": 1,
+            "Resources": [
+              {
+                "TargetService": {
+                  "Type": "AWS::ECS::Service",
+                  "Properties": {
+                    "TaskDefinition": "strapi-task",
+                    "LoadBalancerInfo": {
+                      "ContainerName": "strapi",
+                      "ContainerPort": 1337
+                    }
+                  }
+                }
+              }
+            ]
+          }
+          EOF
+
+      - name: Deploy with CodeDeploy
+        run: |
+          aws deploy create-deployment \
+            --application-name strapi-codedeploy \
+            --deployment-group-name strapi-deployment-group \
+            --deployment-config-name CodeDeployDefault.ECSAllAtOnce \
+            --revision "revisionType=AppSpecContent,appSpecContent={content=$(cat appspec.json | jq -Rs .)}" \
+            --description "GitHub Actions Deployment - Blue/Green"
