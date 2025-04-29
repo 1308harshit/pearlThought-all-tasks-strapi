@@ -95,7 +95,8 @@ jobs:
                     "LoadBalancerInfo": {
                       "ContainerName": "strapi",
                       "ContainerPort": 1337
-                    }
+                    },
+                    "ServiceArn": "arn:aws:ecs:us-east-1:816069168735:service/strapi-cluster/strapi-service"
                   }
                 }
               }
