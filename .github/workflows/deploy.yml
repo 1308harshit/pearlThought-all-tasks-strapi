@@ -44,9 +44,18 @@ jobs:
             --query taskDefinition \
             --output json > task-def.json
 
-      - name: Update task definition with latest image
+      - name: Update image in task definition
         run: |
-          jq '.containerDefinitions[0].image = "${{ secrets.ECR_REPOSITORY_URI }}:latest"' task-def.json > new-task-def.json
+          jq '.containerDefinitions[0].image = "${{ secrets.ECR_REPOSITORY_URI }}:latest"' task-def.json > temp-task-def.json
+          jq 'del(
+            .taskDefinitionArn,
+            .revision,
+            .status,
+            .requiresAttributes,
+            .compatibilities,
+            .registeredAt,
+            .registeredBy
+          )' temp-task-def.json > new-task-def.json
 
       - name: Register new ECS task definition revision
         id: register_task
@@ -82,7 +91,7 @@ jobs:
                 "TargetService": {
                   "Type": "AWS::ECS::Service",
                   "Properties": {
-                    "TaskDefinition": "strapi-task",
+                    "TaskDefinition": "${{ env.TASK_DEF_ARN }}",
                     "LoadBalancerInfo": {
                       "ContainerName": "strapi",
                       "ContainerPort": 1337
