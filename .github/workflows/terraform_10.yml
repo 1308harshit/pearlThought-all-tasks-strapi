@@ -68,24 +68,27 @@ jobs:
       #       --output text)
       #     echo "taskDefinitionArn=$TASK_ARN" >> $"GITHUB_OUTPUT"
 
-    
       - name: Get ECS Task Definition ARN
         id: get_task_def
         run: |
-          TASK_ARN=$(aws ecs list-task-definitions \
+          RAW_OUTPUT=$(aws ecs list-task-definitions \
             --family-prefix strapi-task \
             --sort DESC \
             --max-items 1 \
-            --query 'taskDefinitionArns[?length(@)>0][0]' \
+            --query 'taskDefinitionArns' \
             --output text)
-
-          echo "Found task ARN: $TASK_ARN"
-
-          if [ -z "$TASK_ARN" ] || [ "$TASK_ARN" == "None" ]; then
-            echo "No valid task definition found. Exiting."
+      
+          echo "Raw output: $RAW_OUTPUT"
+      
+          # Filter out 'None' if present
+          TASK_ARN=$(echo "$RAW_OUTPUT" | grep -v 'None' | head -n 1)
+      
+          if [ -z "$TASK_ARN" ]; then
+            echo "No valid task definition ARN found. Exiting."
             exit 1
           fi
-
+      
+          echo "Valid task definition ARN: $TASK_ARN"
           echo "taskDefinitionArn=$TASK_ARN" >> $GITHUB_OUTPUT
       
         
