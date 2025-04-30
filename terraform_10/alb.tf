@@ -62,17 +62,15 @@ resource "aws_lb_listener" "http_80" {
   }
 }
 
-# Secondary Listener (Port 1337) - Static mapping to current production
 resource "aws_lb_listener" "http_1337" {
   load_balancer_arn = aws_lb.alb.arn
   port              = 1337
   protocol          = "HTTP"
 
-  # Always points to whichever is currently production (initially Blue)
+
   default_action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.blue_tg.arn
   }
 
-  # CodeDeploy won't manage this listener, so no lifecycle ignore needed
 }

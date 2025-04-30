@@ -1,4 +1,4 @@
-name: CD - Infrastructure and Deployment
+name: CD - Deployment - 10
 
 on:
   workflow_dispatch:
