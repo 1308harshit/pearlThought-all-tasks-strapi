@@ -1,81 +1,46 @@
-resource "aws_security_group" "alb" {
-  name        = "strapi-alb-sg"
-  description = "Allow inbound HTTP(S) traffic for ALB"
-
-  ingress {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    from_port   = 1337
-    to_port     = 1337
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
-
 resource "aws_lb" "strapi_alb" {
-  name               = "strapi-alb"
+  name               = "ecs-strapi-alb"
   internal           = false
   load_balancer_type = "application"
-  subnets            = var.public_subnets
-  security_groups    = [aws_security_group.alb.id]
+  security_groups    = [aws_security_group.strapi_sg.id]
+  subnets            = [aws_subnet.public_subnet_1.id, aws_subnet.public_subnet_2.id]
 }
 
 resource "aws_lb_target_group" "blue" {
   name        = "strapi-blue-tg"
-  port        = 1337
+  port        = 80
   protocol    = "HTTP"
-  vpc_id      = var.vpc_id
   target_type = "ip"
+  vpc_id      = aws_vpc.main.id
 
   health_check {
     path                = "/"
-    protocol            = "HTTP"
-    matcher             = "200-399"
     interval            = 30
     timeout             = 5
-    healthy_threshold   = 2
+    healthy_threshold   = 5
     unhealthy_threshold = 2
+    matcher             = "200-399"
   }
 }
 
 resource "aws_lb_target_group" "green" {
   name        = "strapi-green-tg"
-  port        = 1337
+  port        = 80
   protocol    = "HTTP"
-  vpc_id      = var.vpc_id
   target_type = "ip"
+  vpc_id      = aws_vpc.main.id
 
   health_check {
     path                = "/"
-    protocol            = "HTTP"
-    matcher             = "200-399"
     interval            = 30
     timeout             = 5
-    healthy_threshold   = 2
+    healthy_threshold   = 5
     unhealthy_threshold = 2
+    matcher             = "200-399"
   }
 }
 
-resource "aws_lb_listener" "http" {
+resource "aws_lb_listener" "strapi_listener" {
   load_balancer_arn = aws_lb.strapi_alb.arn
   port              = 80
   protocol          = "HTTP"
@@ -84,20 +49,4 @@ resource "aws_lb_listener" "http" {
     type             = "forward"
     target_group_arn = aws_lb_target_group.blue.arn
   }
-}
-
-resource "aws_lb_listener_rule" "blue_to_green" {
-  listener_arn = aws_lb_listener.http.arn
-
-  action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.green.arn
-  }
-
-  condition {
-    field  = "path-pattern"
-    values = ["/"]
-  }
-
-  priority = 10
 }

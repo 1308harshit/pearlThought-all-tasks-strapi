@@ -1,4 +1,4 @@
-name: Strapi Deployment using ECS
+name: Strapi Deployment using ECS task 10
 
 on:
   workflow_dispatch: 
@@ -24,17 +24,17 @@ jobs:
 
       - name: Terraform Init
         run: |
-          cd terraform10
+          cd terraform_10
           terraform init
 
       - name: Terraform plan
         run: |
-          cd terraform10
+          cd terraform_10
           terraform plan
           
       - name: Terraform Apply
         run: |
-          cd terraform10
+          cd terraform_10
           terraform apply -auto-approve
 
       - name: Get ECS Task Definition ARN
@@ -46,7 +46,7 @@ jobs:
       - name: Trigger CodeDeploy Deployment
         run: |
           aws deploy create-deployment \
-            --application-name strapiCodeDeployApp \
-            --deployment-group-name strapiDeploymentGroup \
+            --application-name strapi-codedeploy-app \
+            --deployment-group-name strapi-deploy-group \
             --deployment-config-name CodeDeployDefault.ECSCanary10Percent5Minutes \
             --revision revisionType=AppSpecContent,appSpecContent="{\"version\":\"1.0\",\"Resources\":[{\"TargetService\":{\"Type\":\"AWS::ECS::Service\",\"Properties\":{\"TaskDefinition\":\"${{ steps.get_task_def.outputs.taskDefinitionArn }}\",\"LoadBalancerInfo\":{\"ContainerName\":\"strapi\",\"ContainerPort\":1337}}}}]}"          
