@@ -48,8 +48,12 @@
 # }
 
 #  --------------------------------------------------------
-
-resource "aws_codedeploy_deployment_group" "strapi" {
+# CodeDeploy Application
+resource "aws_codedeploy_app" "ecs_app" {
+  name = "strapiCodeDeployApp"
+  compute_platform = "ECS"
+}
+resource "aws_codedeploy_deployment_group" "ecs_deployment_group" {
   app_name              = aws_codedeploy_app.strapi.name
   deployment_group_name = "StrapiDeploymentGroup"
   service_role_arn      = aws_iam_role.codedeploy_service_role.arn
