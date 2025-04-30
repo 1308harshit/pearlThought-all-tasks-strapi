@@ -1,123 +1,107 @@
-name: Strapi Deployment using ECS task 10
+name: CD - Infrastructure and Deployment
 
 on:
   workflow_dispatch:
+    inputs:
+      ecr_image:
+        description: 'ECR Image URI (e.g. 123456789012.dkr.ecr.us-east-1.amazonaws.com/strapi-app:sha-123)'
+        required: true
+      action:
+        description: 'Select action'
+        type: choice
+        options:
+          - create-infra
+          - deploy-app
+        required: true
 
 jobs:
-  apply:
+  terraform-infra:
+    if: github.event.inputs.action == 'create-infra'
     runs-on: ubuntu-latest
+    environment: production
+    
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+      - name: Checkout
+        uses: actions/checkout@v3
 
-      - name: Set up Terraform
-        uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_version: 1.5.7 
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v3
+      - name: Configure AWS
+        uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
 
       - name: Terraform Init
         run: |
           cd terraform_10
           terraform init
 
-      - name: Terraform Destroy
-        run: |
-          cd terraform_10
-          terraform destroy -auto-approve
-
-      - name: Terraform Plan
-        run: |
-          cd terraform_10
-          terraform plan
-          
       - name: Terraform Apply
         run: |
           cd terraform_10
-          terraform apply -auto-approve
+          terraform apply -auto-approve -var="ecr_image=${{ github.event.inputs.ecr_image }}"
 
-      - name: Register new ECS task definition
-        id: register_task_def
+  trigger-deployment:
+    if: github.event.inputs.action == 'deploy-app'
+    runs-on: ubuntu-latest
+    environment: production
+    
+    steps:
+      - name: Configure AWS
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Get ECS Task Definition ARN
+        id: get_task_def
         run: |
-          TASK_DEF_JSON=$(cat taskdef.json)
-          echo "$TASK_DEF_JSON" > taskdef-temp.json
-          TASK_ARN=$(aws ecs register-task-definition --cli-input-json file://taskdef-temp.json --query 'taskDefinition.taskDefinitionArn' --output text)
-          echo "taskDefinitionArn=$TASK_ARN" >> $GITHUB_OUTPUT
-
+          TASK_ARN=$(aws ecs list-task-definitions \
+            --family-prefix strapi-task \
+            --sort DESC \
+            --max-items 1 \
+            --query 'taskDefinitionArns[0]' \
+            --output text)
+          echo "taskDefinitionArn=$TASK_ARN" >> "$GITHUB_OUTPUT"
+        
       - name: Trigger CodeDeploy Deployment
         run: |
+          # Convert AppSpec to JSON string
+          APPSPEC_JSON=$(jq -n \
+            --arg taskdef "${{ steps.get_task_def.outputs.taskDefinitionArn }}" \
+            '{
+              version: "1.0",
+              Resources: [{
+                TargetService: {
+                  Type: "AWS::ECS::Service",
+                  Properties: {
+                    TaskDefinition: $taskdef,
+                    LoadBalancerInfo: {
+                      ContainerName: "strapi",
+                      ContainerPort: 1337
+                    }
+                  }
+                }
+              }]
+            }')
+
+          # Create revision JSON
+          REVISION_JSON=$(jq -n \
+            --arg content "$APPSPEC_JSON" \
+            '{
+              revisionType: "AppSpecContent",
+              appSpecContent: {
+                content: $content
+              }
+            }')
+
+          # Deploy using AWS CodeDeploy
           aws deploy create-deployment \
-            --application-name strapi-codedeploy-app \
+            --application-name strapi-app-deploy \
             --deployment-group-name strapi-deploy-group \
             --deployment-config-name CodeDeployDefault.ECSCanary10Percent5Minutes \
-            --revision revisionType=AppSpecContent,appSpecContent="{\"version\":\"1.0\",\"Resources\":[{\"TargetService\":{\"Type\":\"AWS::ECS::Service\",\"Properties\":{\"TaskDefinition\":\"${{ steps.register_task_def.outputs.taskDefinitionArn }}\",\"LoadBalancerInfo\":{\"ContainerName\":\"strapi\",\"ContainerPort\":1337}}}}]}"
-
-      - name: Terraform Destroy
-        run: |
-          cd terraform_10
-          terraform destroy -auto-approve
-
-# ------------------------------------------------------------------
-# name: Strapi Deployment using ECS task 10
-
-# on:
-#   workflow_dispatch: 
-  
-# jobs:
-#   apply:
-#     runs-on: ubuntu-latest
-#     steps:
-#       - name: Checkout code
-#         uses: actions/checkout@v2
-
-#       - name: Set up Terraform
-#         uses: hashicorp/setup-terraform@v2
-#         with:
-#           terraform_version: 1.5.7 
-
-#       - name: Configure AWS credentials
-#         uses: aws-actions/configure-aws-credentials@v3
-#         with:
-#           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-#           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-#           aws-region: us-east-1
-
-#       - name: Terraform Init
-#         run: |
-#           cd terraform_10
-#           terraform init
-
-#       - name: Terraform plan
-#         run: |
-#           cd terraform_10
-#           terraform plan
-          
-#       - name: Terraform Apply
-#         run: |
-#           cd terraform_10
-#           terraform apply -auto-approve
-
-#       - name: Get ECS Task Definition ARN
-#         id: get_task_def
-#         run: |
-#           TASK_ARN=$(aws ecs list-task-definitions --family-prefix strapi-task --sort DESC --max-items 1 --query 'taskDefinitionArns[0]' --output text)
-#           echo "taskDefinitionArn=$TASK_ARN" >> $GITHUB_OUTPUT
-
-#       - name: Trigger CodeDeploy Deployment
-#         run: |
-#           aws deploy create-deployment \
-#             --application-name strapi-codedeploy-app \
-#             --deployment-group-name strapi-deploy-group \
-#             --deployment-config-name CodeDeployDefault.ECSCanary10Percent5Minutes \
-#             --revision revisionType=AppSpecContent,appSpecContent="{\"version\":\"1.0\",\"Resources\":[{\"TargetService\":{\"Type\":\"AWS::ECS::Service\",\"Properties\":{\"TaskDefinition\":\"${{ steps.get_task_def.outputs.taskDefinitionArn }}\",\"LoadBalancerInfo\":{\"ContainerName\":\"strapi\",\"ContainerPort\":1337}}}}]}"          
-
-#       - name: Terraform Destroy
-#         run: |
-#           cd terraform_10
-#           terraform destory -auto-approve
+            --revision "$REVISION_JSON"
