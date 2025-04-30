@@ -66,12 +66,17 @@ jobs:
       #       --max-items 1 \
       #       --query 'taskDefinitionArns[0]' \
       #       --output text)
-      #     echo "taskDefinitionArn=$TASK_ARN" >> "$GITHUB_OUTPUT"
+      #     echo "taskDefinitionArn=$TASK_ARN" >> $"GITHUB_OUTPUT"
 
       - name: Get ECS Task Definition ARN
         id: get_task_def
         run: |
-          TASK_ARN=$(aws ecs list-task-definitions --family-prefix strapi-task --sort DESC --max-items 1 --query 'taskDefinitionArns[0]' --output text)
+          TASK_ARN=$(aws ecs list-task-definitions \
+            --family-prefix strapi-task \
+            --sort DESC \
+            --max-items 1 \
+            --query 'taskDefinitionArns[0]' \
+            --output text)
           echo "Found task ARN: $TASK_ARN"
           if [ "$TASK_ARN" = "None" ] || [ -z "$TASK_ARN" ]; then
             echo "No existing task definition found. Exiting."
