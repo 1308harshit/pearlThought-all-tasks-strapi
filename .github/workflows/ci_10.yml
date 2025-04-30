@@ -26,7 +26,7 @@ jobs:
       - name: Ensure ECR repository exists
         env:
           AWS_REGION: us-east-1
-          ECR_REPOSITORY: strapi-app
+          ECR_REPOSITORY: strapi-app-image
         run: |
           aws ecr describe-repositories --repository-names $ECR_REPOSITORY --region $AWS_REGION || \
           aws ecr create-repository --repository-name $ECR_REPOSITORY --region $AWS_REGION
@@ -34,7 +34,7 @@ jobs:
       - name: Build, tag, and push image to ECR
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: strapi_app10
+          ECR_REPOSITORY: strapi_app-image
           IMAGE_TAG: latest
         run: |
           cd strapi

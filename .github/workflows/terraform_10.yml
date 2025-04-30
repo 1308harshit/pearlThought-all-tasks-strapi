@@ -16,7 +16,7 @@ jobs:
           terraform_version: 1.5.7 
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@v3
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -50,3 +50,8 @@ jobs:
             --deployment-group-name strapi-deploy-group \
             --deployment-config-name CodeDeployDefault.ECSCanary10Percent5Minutes \
             --revision revisionType=AppSpecContent,appSpecContent="{\"version\":\"1.0\",\"Resources\":[{\"TargetService\":{\"Type\":\"AWS::ECS::Service\",\"Properties\":{\"TaskDefinition\":\"${{ steps.get_task_def.outputs.taskDefinitionArn }}\",\"LoadBalancerInfo\":{\"ContainerName\":\"strapi\",\"ContainerPort\":1337}}}}]}"          
+
+      - name: Terraform Destroy
+        run: |
+          cd terraform_10
+          terraform destory -auto-approve
