@@ -12,6 +12,7 @@ terraform2/.terraform/
 terraform5/.terraform/
 terraform6/.terraform/
 terraform10/.terraform/
+terraform_10/.terraform/
 
 # Environment variable files
 # .env
