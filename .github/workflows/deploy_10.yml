@@ -21,13 +21,13 @@ jobs:
       - name: Log in to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v1
 
-      - name: Build Docker image
-        run: |
-          docker build -t ${{ secrets.ECR_REPOSITORY_URI }}:latest .
+      # - name: Build Docker image
+      #   run: |
+      #     docker build -t ${{ secrets.ECR_REPOSITORY_URI }}:latest .
 
-      - name: Push Docker image to ECR
-        run: |
-          docker push 816069168735.dkr.ecr.us-east-1.amazonaws.com/strapi-app-image:latest
+      # - name: Push Docker image to ECR
+      #   run: |
+      #     docker push 816069168735.dkr.ecr.us-east-1.amazonaws.com/strapi-app-image:latest
 
       - name: Register ECS Task Definition
         id: taskdef
