@@ -68,6 +68,7 @@ jobs:
       #       --output text)
       #     echo "taskDefinitionArn=$TASK_ARN" >> $"GITHUB_OUTPUT"
 
+    
       - name: Get ECS Task Definition ARN
         id: get_task_def
         run: |
@@ -75,14 +76,18 @@ jobs:
             --family-prefix strapi-task \
             --sort DESC \
             --max-items 1 \
-            --query 'taskDefinitionArns[0]' \
+            --query 'taskDefinitionArns[?length(@)>0][0]' \
             --output text)
+
           echo "Found task ARN: $TASK_ARN"
-          if [ "$TASK_ARN" = "None" ] || [ -z "$TASK_ARN" ]; then
-            echo "No existing task definition found. Exiting."
+
+          if [ -z "$TASK_ARN" ] || [ "$TASK_ARN" == "None" ]; then
+            echo "No valid task definition found. Exiting."
             exit 1
           fi
-          echo "taskDefinitionArn=$TASK_ARN" >> "$GITHUB_OUTPUT"
+
+          echo "taskDefinitionArn=$TASK_ARN" >> $GITHUB_OUTPUT
+      
         
       - name: Trigger CodeDeploy Deployment
         run: |
