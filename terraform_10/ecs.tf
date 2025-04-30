@@ -48,14 +48,14 @@ resource "aws_ecs_task_definition" "strapi_task" {
         value = "your_key1,your_key2"
       }
     ],
-    logConfiguration = {
-      logDriver = "awslogs",
-      options = {
-        awslogs-group         = "/ecs/strapi",
-        awslogs-region        = "us-east-1",
-        awslogs-stream-prefix = "strapi"
-      }
-    }
+    # logConfiguration = {
+    #   logDriver = "awslogs",
+    #   options = {
+    #     awslogs-group         = "/ecs/strapi",
+    #     awslogs-region        = "us-east-1",
+    #     awslogs-stream-prefix = "strapi"
+    #   }
+    # }
   }])
 }
 
